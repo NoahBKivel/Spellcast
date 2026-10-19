@@ -9,12 +9,10 @@ export function Crystal({ className }: { className?: string }) {
 export function TileFace({
   tile,
   selected = false,
-  head = false,
   dimmed = false,
 }: {
   tile: Tile;
   selected?: boolean;
-  head?: boolean;
   dimmed?: boolean;
 }) {
   return (
@@ -22,7 +20,6 @@ export function TileFace({
       className={cx(
         "tile",
         selected && "selected",
-        head && "head",
         dimmed && "dimmed",
         tile.wordMult === 2 && "x2",
         tile.wordMult === 3 && "x3",

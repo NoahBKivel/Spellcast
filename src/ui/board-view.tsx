@@ -33,7 +33,6 @@ export function BoardView({ board, path, interactive, onTile, onRelease }: Props
   }, [path, board]);
 
   const inPath = (coord: Coord) => path.some((item) => sameCoord(item, coord));
-  const head = path.length > 0 ? path[path.length - 1] : null;
 
   const endDrag = () => {
     const wasDragging = dragging.current;
@@ -80,11 +79,7 @@ export function BoardView({ board, path, interactive, onTile, onRelease }: Props
             disabled={!interactive}
             aria-label={`${tile.letter}${tile.gem ? " with gem" : ""}${tile.wordMult > 1 ? ` ${tile.wordMult}x` : ""}`}
           >
-            <TileFace
-              tile={tile}
-              selected={inPath({ r, c }) && path.length > 1}
-              head={head !== null && sameCoord(head, { r, c })}
-            />
+            <TileFace tile={tile} selected={inPath({ r, c }) && path.length > 1} />
           </button>
         )),
       )}

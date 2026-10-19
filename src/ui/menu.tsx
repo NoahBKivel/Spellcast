@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { MatchConfig } from "../game/match";
 import { Mascot, Wizard } from "./characters";
 import { HelpModal } from "./help";
-import { Logo } from "./scene";
 
 type Props = {
   loading?: boolean;
@@ -17,13 +16,14 @@ export function Menu({ loading = false, error = null, onStart }: Props) {
 
   return (
     <>
-      <Logo />
       <button type="button" className="icon-button help-button" onClick={() => setHelp(true)} aria-label="How to play">
         ?
       </button>
       <div className="menu-layout">
-        <Wizard />
-        <section className="menu-card">
+        <img className="logo-wordmark" src="/art/logo-wordmark.png" alt="Spellcast" />
+        <div className="menu-row">
+          <Wizard />
+          <section className="menu-card">
           <p className="eyebrow">Five rounds · shared board</p>
           <h1>Find the word. Take the points.</h1>
           <label className="field">
@@ -51,7 +51,7 @@ export function Menu({ loading = false, error = null, onStart }: Props) {
           </button>
           <button
             type="button"
-            className="menu-button secondary"
+            className="menu-button"
             disabled={loading || !onStart}
             onClick={() => onStart?.({ mode: "2v2", humanName: name, botCount: 3 })}
           >
@@ -60,8 +60,9 @@ export function Menu({ loading = false, error = null, onStart }: Props) {
           <button type="button" className="menu-button ghost" disabled title="The original 50 adventure levels were never published.">
             Adventure
           </button>
-        </section>
-        <Mascot />
+          </section>
+          <Mascot />
+        </div>
       </div>
       {help && <HelpModal onClose={() => setHelp(false)} />}
     </>
