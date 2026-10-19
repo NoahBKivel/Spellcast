@@ -104,15 +104,15 @@ button:focus-visible, input:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 16px 24px 18px;
+  justify-content: flex-start;
+  gap: 22px;
+  padding: 41px 24px 16px;
 }
 .menu-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
 }
 .logo-wordmark {
   width: 280px;
@@ -122,8 +122,8 @@ button:focus-visible, input:focus-visible {
 }
 
 .sprite { height: auto; pointer-events: none; user-select: none; }
-.menu-layout .wizard { width: 108px; animation: bob 3.4s ease-in-out infinite; }
-.menu-layout .mascot { width: 68px; animation: bob 3.8s ease-in-out infinite reverse; }
+.menu-layout .wizard { width: 128px; animation: bob 3.4s ease-in-out infinite; }
+.menu-layout .mascot { width: 82px; animation: bob 3.8s ease-in-out infinite reverse; }
 .sprite.celebrate { animation: hop 0.55s ease; }
 
 .playfield { position: absolute; inset: 0; z-index: 1; }
@@ -168,17 +168,23 @@ button:focus-visible, input:focus-visible {
   line-height: 1.05;
 }
 .menu-card {
-  width: 268px;
-  background: rgba(7, 18, 58, 0.38);
+  width: 312px;
+  background: transparent;
   border: 0;
-  padding: 8px 6px 4px;
+  border-radius: 0;
+  padding: 0;
   box-shadow: none;
 }
 .menu-card h1 {
   font-size: 16px;
   margin: 0 0 8px;
+  text-align: center;
 }
-.menu-card .eyebrow { font-size: 10px; margin-bottom: 4px; }
+.menu-card .eyebrow {
+  font-size: 10px;
+  margin-bottom: 4px;
+  text-align: center;
+}
 .menu-card .field,
 .menu-card .stepper {
   gap: 8px;
@@ -196,9 +202,10 @@ button:focus-visible, input:focus-visible {
   font-size: 16px;
 }
 .menu-card .menu-button {
-  margin-top: 6px;
-  padding: 0 18px 1px;
-  font-size: 16px;
+  width: 230px;
+  margin: 8px auto 0;
+  padding: 0 18px 2px;
+  font-size: 17px;
 }
 .eyebrow {
   margin: 0 0 8px;
@@ -249,7 +256,6 @@ button:focus-visible, input:focus-visible {
   letter-spacing: 0.02em;
   text-shadow: 0 2px 0 rgba(88, 8, 68, 0.45);
 }
-.menu-button.ghost,
 .menu-button:disabled {
   filter: grayscale(0.55) brightness(0.78);
   color: #e6ebf4;

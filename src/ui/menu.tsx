@@ -57,9 +57,6 @@ export function Menu({ loading = false, error = null, onStart }: Props) {
           >
             2 vs 2
           </button>
-          <button type="button" className="menu-button ghost" disabled title="The original 50 adventure levels were never published.">
-            Adventure
-          </button>
           </section>
           <Mascot />
         </div>
