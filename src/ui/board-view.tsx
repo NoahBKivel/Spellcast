@@ -32,7 +32,8 @@ export function BoardView({ board, path, interactive, onTile, onRelease }: Props
     setCenters(next);
   }, [path, board]);
 
-  const selected = (coord: Coord) => path.some((item) => sameCoord(item, coord));
+  const inPath = (coord: Coord) => path.some((item) => sameCoord(item, coord));
+  const head = path.length > 0 ? path[path.length - 1] : null;
 
   const endDrag = () => {
     const wasDragging = dragging.current;
@@ -67,11 +68,6 @@ export function BoardView({ board, path, interactive, onTile, onRelease }: Props
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
     >
-      <svg className="path-line" aria-hidden="true">
-        {centers.length > 1 && (
-          <polyline points={centers.map((point) => `${point.x},${point.y}`).join(" ")} />
-        )}
-      </svg>
       {board.map((row, r) =>
         row.map((tile, c) => (
           <button
@@ -84,12 +80,46 @@ export function BoardView({ board, path, interactive, onTile, onRelease }: Props
             disabled={!interactive}
             aria-label={`${tile.letter}${tile.gem ? " with gem" : ""}${tile.wordMult > 1 ? ` ${tile.wordMult}x` : ""}`}
           >
-            <TileFace tile={tile} selected={selected({ r, c })} />
+            <TileFace
+              tile={tile}
+              selected={inPath({ r, c }) && path.length > 1}
+              head={head !== null && sameCoord(head, { r, c })}
+            />
           </button>
         )),
       )}
+      <svg className="path-line" aria-hidden="true">
+        {linkSegments(centers).map((segment, index) => (
+          <line key={index} x1={segment.x1} y1={segment.y1} x2={segment.x2} y2={segment.y2} />
+        ))}
+      </svg>
     </div>
   );
+}
+
+const TILE = 45;
+const LINK_OVERLAP = 3;
+
+function linkSegments(centers: { x: number; y: number }[]) {
+  const segments = [];
+  const half = TILE / 2;
+  for (let index = 0; index < centers.length - 1; index += 1) {
+    const start = centers[index];
+    const end = centers[index + 1];
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const ax = Math.abs(dx / length);
+    const ay = Math.abs(dy / length);
+    const reach = Math.min(ax > 0 ? half / ax : Infinity, ay > 0 ? half / ay : Infinity) - LINK_OVERLAP;
+    segments.push({
+      x1: start.x + (dx / length) * reach,
+      y1: start.y + (dy / length) * reach,
+      x2: end.x - (dx / length) * reach,
+      y2: end.y - (dy / length) * reach,
+    });
+  }
+  return segments;
 }
 
 function coordFrom(target: EventTarget | null): Coord | null {

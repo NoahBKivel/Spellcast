@@ -281,17 +281,18 @@ button:focus-visible, input:focus-visible {
 .path-line {
   position: absolute;
   inset: 0;
+  z-index: 4;
   width: 100%;
   height: 100%;
   pointer-events: none;
   overflow: visible;
 }
-.path-line polyline {
+.path-line line {
   fill: none;
-  stroke: rgba(47, 140, 255, 0.95);
-  stroke-width: 5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke: #00feff;
+  stroke-width: 8;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
 }
 .cell {
   width: 45px;
@@ -313,6 +314,8 @@ button:focus-visible, input:focus-visible {
   user-select: none;
 }
 .tile .glyph {
+  position: relative;
+  z-index: 2;
   font-family: Fredoka, sans-serif;
   font-size: 24px;
   line-height: 1;
@@ -321,6 +324,7 @@ button:focus-visible, input:focus-visible {
   position: absolute;
   right: 3px;
   bottom: 1px;
+  z-index: 2;
   font-size: 9px;
   font-weight: 800;
   color: #e454c8;
@@ -344,6 +348,7 @@ button:focus-visible, input:focus-visible {
   position: absolute;
   left: 1px;
   bottom: 1px;
+  z-index: 2;
   width: 10px;
   height: 14px;
   pointer-events: none;
@@ -352,7 +357,7 @@ button:focus-visible, input:focus-visible {
   position: absolute;
   top: -7px;
   right: -7px;
-  z-index: 2;
+  z-index: 3;
   background: #1b1b22;
   color: #ff4fae;
   border: 2px solid #ff4fae;
@@ -362,16 +367,39 @@ button:focus-visible, input:focus-visible {
   line-height: 1;
   padding: 3px 4px;
 }
+.tile.x2::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 53.4px;
+  height: 53.3px;
+  transform: translate(-50%, -50%);
+  background: url("/art/tile-x2-ring.png") center / 100% 100% no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
 .tile.selected {
-  background: linear-gradient(180deg, #fffdf8, #f7f1e6);
-  color: #1c2030;
-  box-shadow: 0 0 0 3px #2f8cff, inset 0 0 0 2px #b9dcff;
+  background: url("/art/tile-active.png?v=sel") center / 100% 100% no-repeat;
+  color: white;
+  box-shadow: none;
+  border-radius: 0;
   transform: none;
 }
-.tile.selected .pv { color: #e454c8; }
+.tile.head::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 58px;
+  height: 58px;
+  transform: translate(-50%, -50%);
+  background: url("/art/tile-select-ring.png?v=sel") center / 100% 100% no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+.tile.selected .pv { color: white; }
 .tile.selected .boost { color: white; }
-.tile.x2 { box-shadow: 0 0 0 2px #ff4fae, inset 0 0 0 2px #f3d7c8; }
-.tile.selected.x2 { box-shadow: 0 0 0 3px #2f8cff, inset 0 0 0 2px #b9dcff; }
 .tile.x3 { box-shadow: 0 0 0 2px #ffd15c, inset 0 0 0 2px #f3d7c8; }
 .tile.frozen { filter: grayscale(0.4) brightness(0.85); }
 .tile.dimmed { opacity: 0.45; }
