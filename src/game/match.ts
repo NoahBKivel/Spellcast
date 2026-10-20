@@ -20,13 +20,12 @@ import {
 import type { Rng } from "./rng";
 import { scorePath, wordFrom } from "./scoring";
 
-export type Mode = "ffa" | "2v2";
+export const MAX_PLAYERS = 6;
 
 export type Player = {
   id: string;
   name: string;
   isHuman: boolean;
-  team: 0 | 1;
   gems: number;
   score: number;
   gemBonus: number;
@@ -56,11 +55,9 @@ export type MatchResult = {
   tie: boolean;
   letterrate: Award | null;
   fast: Award | null;
-  teamScores: [number, number] | null;
 };
 
 export type Match = {
-  mode: Mode;
   round: number;
   turnIndex: number;
   turnSerial: number;
@@ -73,8 +70,7 @@ export type Match = {
 };
 
 export type MatchConfig = {
-  mode: Mode;
-  humanName: string;
+  humans: { id: string; name: string }[];
   botCount: number;
 };
 
@@ -92,16 +88,14 @@ export function activePlayer(match: Match): Player {
 }
 
 export function votesNeeded(match: Match): number {
-  if (match.mode === "2v2") return 2;
   return Math.max(match.players.length - 1, 1);
 }
 
-export function createMatch(config: MatchConfig, rng: Rng): Match {
-  const human: Player = {
-    id: "p0",
-    name: config.humanName.trim() || "You",
-    isHuman: true,
-    team: 0,
+function blankPlayer(id: string, name: string, color: number, isHuman: boolean): Player {
+  return {
+    id,
+    name,
+    isHuman,
     gems: STARTING_GEMS,
     score: 0,
     gemBonus: 0,
@@ -110,50 +104,22 @@ export function createMatch(config: MatchConfig, rng: Rng): Match {
     bestWord: null,
     bestWordScore: 0,
     fastestMs: null,
-    color: 0,
+    color,
   };
+}
 
-  const players: Player[] = [human];
-  if (config.mode === "2v2") {
-    const seats: { name: string; team: 0 | 1 }[] = [
-      { name: BOT_NAMES[1], team: 0 },
-      { name: BOT_NAMES[3], team: 1 },
-      { name: BOT_NAMES[4], team: 1 },
-    ];
-    seats.forEach((seat, index) => {
-      players.push({
-        ...human,
-        id: `p${index + 1}`,
-        name: seat.name,
-        isHuman: false,
-        team: seat.team,
-        color: index + 1,
-        lastWord: null,
-        lastGain: null,
-        bestWord: null,
-        fastestMs: null,
-      });
-    });
-  } else {
-    const count = Math.max(0, Math.min(5, config.botCount));
-    for (let i = 0; i < count; i += 1) {
-      players.push({
-        ...human,
-        id: `p${i + 1}`,
-        name: BOT_NAMES[i % BOT_NAMES.length],
-        isHuman: false,
-        team: 0,
-        color: i + 1,
-        lastWord: null,
-        lastGain: null,
-        bestWord: null,
-        fastestMs: null,
-      });
-    }
+export function createMatch(config: MatchConfig, rng: Rng): Match {
+  const humans = config.humans.length > 0 ? config.humans : [{ id: "p0", name: "Player1" }];
+  const players: Player[] = humans.map((human, index) =>
+    blankPlayer(human.id, human.name.trim() || `Player${index + 1}`, index, true),
+  );
+  const count = Math.max(0, Math.min(MAX_PLAYERS - players.length, config.botCount));
+  for (let i = 0; i < count; i += 1) {
+    const index = players.length;
+    players.push(blankPlayer(`p${index}`, BOT_NAMES[i % BOT_NAMES.length], index, false));
   }
 
   return {
-    mode: config.mode,
     round: 1,
     turnIndex: 0,
     turnSerial: 1,
@@ -319,26 +285,8 @@ export function finishMatch(match: Match): Match {
     }
   }
 
-  const teamScores: [number, number] = [
-    players.filter((player) => player.team === 0).reduce((sum, player) => sum + player.score, 0),
-    players.filter((player) => player.team === 1).reduce((sum, player) => sum + player.score, 0),
-  ];
-
-  let winnerIds: string[];
-  let tie = false;
-  if (match.mode === "2v2") {
-    if (teamScores[0] === teamScores[1]) {
-      tie = true;
-      winnerIds = players.map((player) => player.id);
-    } else {
-      const team = teamScores[0] > teamScores[1] ? 0 : 1;
-      winnerIds = players.filter((player) => player.team === team).map((player) => player.id);
-    }
-  } else {
-    const best = Math.max(...players.map((player) => player.score));
-    winnerIds = players.filter((player) => player.score === best).map((player) => player.id);
-    tie = winnerIds.length > 1;
-  }
+  const best = Math.max(...players.map((player) => player.score));
+  const winnerIds = players.filter((player) => player.score === best).map((player) => player.id);
 
   return {
     ...match,
@@ -347,10 +295,9 @@ export function finishMatch(match: Match): Match {
     timer: { ...match.timer, running: false },
     result: {
       winnerIds,
-      tie,
+      tie: winnerIds.length > 1,
       letterrate,
       fast,
-      teamScores: match.mode === "2v2" ? teamScores : null,
     },
   };
 }

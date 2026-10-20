@@ -1,23 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { chooseBotAction } from "../game/bots";
 import type { Coord, Tile } from "../game/board";
 import type { Dictionary } from "../game/dictionary";
 import { HINT_COST, ROUNDS, SHUFFLE_COST, SWAP_COST, TIMER_COST, TIMER_MS } from "../game/letters";
-import {
-  activePlayer,
-  createMatch,
-  extendTimer,
-  skipTurn,
-  spendForHint,
-  submitWord,
-  tickTimer,
-  useShuffle,
-  useSwap,
-  voteTimer,
-  votesNeeded,
-  type Match,
-  type MatchConfig,
-} from "../game/match";
+import type { LobbyAction } from "../game/lobby";
+import { activePlayer, votesNeeded, type Match } from "../game/match";
 import { mulberry32, type Rng } from "../game/rng";
 import { scorePath, wordFrom } from "../game/scoring";
 import { randomHint } from "../game/solver";
@@ -44,16 +30,17 @@ type Presentation = {
 };
 
 type Props = {
-  config: MatchConfig;
+  match: Match;
+  youId: string;
   dict: Dictionary;
   onExit: () => void;
+  onAction: (action: LobbyAction) => void;
 };
 
-export function MatchScreen({ config, dict, onExit }: Props) {
+export function MatchScreen({ match, youId, dict, onExit, onAction }: Props) {
   const rngRef = useRef<Rng | null>(null);
   if (!rngRef.current) rngRef.current = mulberry32((Math.random() * 1_000_000_000) | 0);
 
-  const [match, setMatch] = useState(() => createMatch(config, rngRef.current!));
   const matchRef = useRef(match);
   matchRef.current = match;
 
@@ -72,13 +59,9 @@ export function MatchScreen({ config, dict, onExit }: Props) {
   const [swapAt, setSwapAt] = useState<Coord | null>(null);
   const [help, setHelp] = useState(false);
   const [gate, setGate] = useState(true);
+  const [clockMs, setClockMs] = useState(match.timer.remainingMs);
   const resolvingRef = useRef(false);
   const turnStartRef = useRef(performance.now());
-
-  const commit = (next: Match) => {
-    matchRef.current = next;
-    setMatch(next);
-  };
 
   useEffect(() => {
     setPlayPath([]);
@@ -107,51 +90,20 @@ export function MatchScreen({ config, dict, onExit }: Props) {
   }, [match.round, match.phase]);
 
   useEffect(() => {
+    setClockMs(match.timer.remainingMs);
+  }, [match.turnSerial, match.timer.running, match.timer.remainingMs]);
+
+  useEffect(() => {
     if (!match.timer.running || match.phase === "ended") return;
     const id = window.setInterval(() => {
-      if (resolvingRef.current) return;
-      const current = matchRef.current;
-      if (!current.timer.running) return;
-      commit(tickTimer(current, 100, rngRef.current!));
+      setClockMs((ms) => Math.max(0, ms - 100));
     }, 100);
     return () => window.clearInterval(id);
   }, [match.timer.running, match.phase, match.turnSerial]);
 
-  useEffect(() => {
-    if (gate || match.phase === "ended") return;
-    const serial = match.turnSerial;
-    const timers: number[] = [];
-    const active = activePlayer(match);
-
-    if (!active.isHuman) {
-      timers.push(
-        window.setTimeout(() => {
-          if (matchRef.current.turnSerial !== serial || resolvingRef.current) return;
-          void runBot(serial);
-        }, 700),
-      );
-    }
-
-    match.players.forEach((player, index) => {
-      if (player.isHuman || player.id === active.id) return;
-      const delay = active.isHuman ? 12_000 + index * 1_800 + Math.floor(Math.random() * 1_600) : 1_400 + index * 600;
-      timers.push(
-        window.setTimeout(() => {
-          const current = matchRef.current;
-          if (current.turnSerial !== serial || current.timer.running || resolvingRef.current) return;
-          commit(voteTimer(current, player.id));
-        }, delay),
-      );
-    });
-
-    return () => timers.forEach((id) => window.clearTimeout(id));
-    // runBot reads the latest board through refs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [match.turnSerial, gate, match.phase]);
-
-  const human = match.players.find((player) => player.isHuman) ?? match.players[0];
+  const me = match.players.find((player) => player.id === youId) ?? match.players[0];
   const active = activePlayer(match);
-  const myTurn = active.isHuman && match.phase === "playing" && !gate && presentation === null;
+  const myTurn = active.id === youId && match.phase === "playing" && !gate && presentation === null;
   const word = path.length > 0 ? wordFrom(match.board, path) : "";
   const solo = match.players.length === 1;
   const canVote =
@@ -159,8 +111,8 @@ export function MatchScreen({ config, dict, onExit }: Props) {
     !match.timer.running &&
     presentation === null &&
     !gate &&
-    !match.timer.votes.includes(human.id) &&
-    (solo || active.id !== human.id);
+    !match.timer.votes.includes(me.id) &&
+    (solo || active.id !== me.id);
 
   async function presentPath(playPath: Coord[], serial: number) {
     if (resolvingRef.current) return;
@@ -181,63 +133,16 @@ export function MatchScreen({ config, dict, onExit }: Props) {
       return;
     }
     const elapsed = performance.now() - turnStartRef.current;
-    commit(submitWord(matchRef.current, playPath, rngRef.current!, elapsed));
+    onAction({ type: "play", path: playPath, elapsedMs: elapsed });
     setPlayPath([]);
     setPresentation(null);
     resolvingRef.current = false;
   }
 
-  async function runBot(serial: number) {
-    let current = matchRef.current;
-    if (current.turnSerial !== serial) return;
-    const player = activePlayer(current);
-    let action = chooseBotAction(current.board, dict, player.gems, current.round, rngRef.current!);
-
-    if (action.type === "shuffle") {
-      await wait(280);
-      if (matchRef.current.turnSerial !== serial) return;
-      current = useShuffle(matchRef.current, rngRef.current!);
-      commit(current);
-      await wait(420);
-      if (matchRef.current.turnSerial !== serial) return;
-      action = chooseBotAction(current.board, dict, activePlayer(current).gems, current.round, rngRef.current!, false);
-    }
-
-    if (action.type === "swap") {
-      await wait(240);
-      if (matchRef.current.turnSerial !== serial) return;
-      current = useSwap(matchRef.current, action.coord, action.letter);
-      commit(current);
-      await wait(320);
-      if (matchRef.current.turnSerial !== serial) return;
-      await trace(action.path, serial);
-      await presentPath(action.path, serial);
-      return;
-    }
-
-    if (action.type !== "play") {
-      if (matchRef.current.turnSerial !== serial) return;
-      commit(skipTurn(matchRef.current, rngRef.current!));
-      return;
-    }
-
-    await trace(action.path, serial);
-    await presentPath(action.path, serial);
-  }
-
-  async function trace(playPath: Coord[], serial: number) {
-    for (let i = 1; i <= playPath.length; i += 1) {
-      if (matchRef.current.turnSerial !== serial) return;
-      setPlayPath(playPath.slice(0, i));
-      await wait(48);
-    }
-    await wait(220);
-  }
-
   function releaseSelection() {
     if (presentation || resolvingRef.current) return;
     const current = matchRef.current;
-    const playing = activePlayer(current).isHuman && current.phase === "playing" && !gate && presentation === null;
+    const playing = activePlayer(current).id === youId && current.phase === "playing" && !gate && presentation === null;
     if (!playing) return;
     const playPath = pathRef.current;
     if (playPath.length < 2) return;
@@ -271,8 +176,8 @@ export function MatchScreen({ config, dict, onExit }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const clock = formatClock(match.timer.remainingMs);
-  const timerRatio = Math.min(1, Math.max(0, match.timer.remainingMs / TIMER_MS));
+  const clock = formatClock(clockMs);
+  const timerRatio = Math.min(1, Math.max(0, clockMs / TIMER_MS));
   const showingReject = rejected !== null && path.length === 0 && presentation === null;
   const longWord = !!presentation?.long;
   const bannerWord = presentation?.word ?? (path.length > 0 ? word : showingReject ? rejected.word : "");
@@ -318,9 +223,9 @@ export function MatchScreen({ config, dict, onExit }: Props) {
               }}
             />
           </div>
-          <span className="seat-pip" aria-hidden="true">{human.name.slice(0, 1)}</span>
-          <div className="gem-tray" aria-label={`${human.gems} gems`}>
-            {GEM_SLOTS.slice(0, human.gems).map(([left, top], index) => (
+          <span className="seat-pip" aria-hidden="true">{me.name.slice(0, 1)}</span>
+          <div className="gem-tray" aria-label={`${me.gems} gems`}>
+            {GEM_SLOTS.slice(0, me.gems).map(([left, top], index) => (
               <img key={index} src="/art/gem.png?v=hd" alt="" className="tray-gem" style={{ left, top }} />
             ))}
           </div>
@@ -328,9 +233,9 @@ export function MatchScreen({ config, dict, onExit }: Props) {
             type="button"
             className="hit hit-shuffle"
             aria-label={`Shuffle ${SHUFFLE_COST}`}
-            disabled={!myTurn || human.gems < SHUFFLE_COST}
+            disabled={!myTurn || me.gems < SHUFFLE_COST}
             onClick={() => {
-              commit(useShuffle(matchRef.current, rngRef.current!));
+              onAction({ type: "shuffle" });
               setPlayPath([]);
             }}
           />
@@ -338,7 +243,7 @@ export function MatchScreen({ config, dict, onExit }: Props) {
             type="button"
             className={cx("hit hit-swap", swapMode && "pressed")}
             aria-label={`Swap ${SWAP_COST}`}
-            disabled={!myTurn || human.gems < SWAP_COST}
+            disabled={!myTurn || me.gems < SWAP_COST}
             onClick={() => {
               setSwapMode((on) => !on);
               setSwapAt(null);
@@ -349,11 +254,11 @@ export function MatchScreen({ config, dict, onExit }: Props) {
             type="button"
             className="hit hit-hint"
             aria-label={`Hint ${HINT_COST}`}
-            disabled={!myTurn || human.gems < HINT_COST}
+            disabled={!myTurn || me.gems < HINT_COST}
             onClick={() => {
               const hint = randomHint(matchRef.current.board, dict, rngRef.current!);
               if (!hint) return;
-              commit(spendForHint(matchRef.current));
+              onAction({ type: "hint" });
               setSwapMode(false);
               setPlayPath(hint.path);
             }}
@@ -367,11 +272,11 @@ export function MatchScreen({ config, dict, onExit }: Props) {
                 ? `Timer ${clock}`
                 : `Start timer, ${match.timer.votes.length} of ${votesNeeded(match)}`
             }
-            disabled={!canVote && !(match.timer.running && myTurn && human.gems >= TIMER_COST)}
+            disabled={!canVote && !(match.timer.running && myTurn && me.gems >= TIMER_COST)}
             onClick={() => {
               const current = matchRef.current;
-              if (current.timer.running && activePlayer(current).isHuman) commit(extendTimer(current));
-              else commit(voteTimer(current, human.id));
+              if (current.timer.running && activePlayer(current).id === youId) onAction({ type: "extend" });
+              else onAction({ type: "vote" });
             }}
           >
             {match.timer.running ? (
@@ -404,8 +309,8 @@ export function MatchScreen({ config, dict, onExit }: Props) {
                 <button
                   key={letter}
                   type="button"
-                  onClick={() => {
-                    commit(useSwap(matchRef.current, swapAt, letter));
+                    onClick={() => {
+                    onAction({ type: "swap", coord: swapAt, letter });
                     setSwapMode(false);
                     setSwapAt(null);
                   }}
@@ -425,13 +330,6 @@ export function MatchScreen({ config, dict, onExit }: Props) {
 }
 
 function Scoreboard({ match, activeId }: { match: Match; activeId: string }) {
-  const groups = match.mode === "2v2"
-    ? [
-        { label: "Your team", team: 0 as const },
-        { label: "Rivals", team: 1 as const },
-      ]
-    : [{ label: "", team: null }];
-
   return (
     <aside className="scoreboard">
       <div className="round-badge">
@@ -441,17 +339,8 @@ function Scoreboard({ match, activeId }: { match: Match; activeId: string }) {
         </span>
       </div>
       <div className="player-card">
-        {groups.map((group) => {
-          const players = match.players.filter((player) => group.team === null || player.team === group.team);
-          const total = players.reduce((sum, player) => sum + player.score, 0);
-          return (
-            <div key={group.label || "all"}>
-              {group.label && (
-                <div className="team-label">
-                  {group.label} · {total}
-                </div>
-              )}
-              {players.map((player) => {
+        <div>
+              {match.players.map((player) => {
                 const active = player.id === activeId;
                 return (
                   <div key={player.id} className={cx("player-row", active && "active")}>
@@ -485,9 +374,7 @@ function Scoreboard({ match, activeId }: { match: Match; activeId: string }) {
                   </div>
                 );
               })}
-            </div>
-          );
-        })}
+        </div>
       </div>
     </aside>
   );

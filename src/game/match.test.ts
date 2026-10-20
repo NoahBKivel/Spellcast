@@ -23,7 +23,7 @@ const path = [
 describe("match", () => {
   it("starts round 1 with no 2x and adds one on the next round", () => {
     const rng = mulberry32(4);
-    let match = createMatch({ mode: "ffa", humanName: "You", botCount: 0 }, rng);
+    let match = createMatch({ humans: [{ id: "p0", name: "You" }], botCount: 0 }, rng);
     expect(match.round).toBe(1);
     expect(wordBoosts(match.board)).toHaveLength(0);
     expect(match.players[0].gems).toBe(3);
@@ -33,7 +33,7 @@ describe("match", () => {
   });
 
   it("ignores the active player's vote unless they are alone", () => {
-    let match = createMatch({ mode: "ffa", humanName: "You", botCount: 1 }, mulberry32(1));
+    let match = createMatch({ humans: [{ id: "p0", name: "You" }], botCount: 1 }, mulberry32(1));
     match = voteTimer(match, "p0");
     expect(match.timer.votes).toEqual([]);
     expect(match.timer.running).toBe(false);
@@ -44,7 +44,7 @@ describe("match", () => {
 
   it("skips a timed-out turn without changing the board", () => {
     const rng = mulberry32(8);
-    let match = createMatch({ mode: "ffa", humanName: "You", botCount: 1 }, rng);
+    let match = createMatch({ humans: [{ id: "p0", name: "You" }], botCount: 1 }, rng);
     const letters = lettersOf(match.board).join("");
     match = voteTimer(match, "p1");
     match = tickTimer(match, TIMER_MS, rng);
@@ -56,7 +56,7 @@ describe("match", () => {
 
   it("lets a solo player start their own timer and buy it back", () => {
     const rng = mulberry32(2);
-    let match = createMatch({ mode: "ffa", humanName: "You", botCount: 0 }, rng);
+    let match = createMatch({ humans: [{ id: "p0", name: "You" }], botCount: 0 }, rng);
     match = voteTimer(match, "p0");
     expect(match.timer.running).toBe(true);
     match = tickTimer(match, 10_000, rng);
@@ -66,18 +66,9 @@ describe("match", () => {
     expect(match.timer.remainingMs).toBe(TIMER_MS);
   });
 
-  it("starts a 2v2 clock after two votes from either team", () => {
-    let match = createMatch({ mode: "2v2", humanName: "You", botCount: 0 }, mulberry32(5));
-    expect(match.players.map((player) => player.team)).toEqual([0, 0, 1, 1]);
-    match = voteTimer(match, "p1");
-    expect(match.timer.running).toBe(false);
-    match = voteTimer(match, "p3");
-    expect(match.timer.running).toBe(true);
-  });
-
   it("caps stored gems at 10", () => {
     const rng = mulberry32(6);
-    let match = createMatch({ mode: "ffa", humanName: "You", botCount: 0 }, rng);
+    let match = createMatch({ humans: [{ id: "p0", name: "You" }], botCount: 0 }, rng);
     match.board[0][0].gem = true;
     match.board[0][1].gem = true;
     match.players[0].gems = 9;
@@ -87,7 +78,7 @@ describe("match", () => {
 
   it("spends gems on shuffle and swap and keeps shuffle bonuses attached", () => {
     const rng = mulberry32(9);
-    let match = createMatch({ mode: "ffa", humanName: "You", botCount: 0 }, rng);
+    let match = createMatch({ humans: [{ id: "p0", name: "You" }], botCount: 0 }, rng);
     match.players[0].gems = 6;
     const before = tileSignature(match.board);
     match = useShuffle(match, rng);
@@ -102,7 +93,7 @@ describe("match", () => {
 
   it("adds leftover gems and names the awards after five rounds", () => {
     const rng = mulberry32(12);
-    let match = createMatch({ mode: "ffa", humanName: "Ada", botCount: 1 }, rng);
+    let match = createMatch({ humans: [{ id: "p0", name: "Ada" }], botCount: 1 }, rng);
     match = {
       ...match,
       players: [
@@ -121,7 +112,7 @@ describe("match", () => {
 
   it("ends a solo match on the fifth word", () => {
     const rng = mulberry32(15);
-    let match = createMatch({ mode: "ffa", humanName: "You", botCount: 0 }, rng);
+    let match = createMatch({ humans: [{ id: "p0", name: "You" }], botCount: 0 }, rng);
     for (let turn = 0; turn < 4; turn += 1) {
       match = submitWord(match, path, rng, 1000);
       expect(match.phase).toBe("playing");
@@ -134,7 +125,7 @@ describe("match", () => {
 
   it("does not change the board when the clock skips the last seat of a round", () => {
     const rng = mulberry32(16);
-    let match = createMatch({ mode: "ffa", humanName: "You", botCount: 0 }, rng);
+    let match = createMatch({ humans: [{ id: "p0", name: "You" }], botCount: 0 }, rng);
     const before = lettersOf(match.board).join("");
     match = skipTurn(match, rng);
     expect(match.round).toBe(2);

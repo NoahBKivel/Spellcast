@@ -275,6 +275,54 @@ button:focus-visible, input:focus-visible {
   box-shadow: 0 5px 0 #0c6f90;
 }
 .form-error { color: #ffb4c8; margin: 0 0 8px; }
+.join-field { margin-top: 12px; }
+.code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.menu-card .code-row h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: 0.16em;
+  text-align: left;
+}
+.roster {
+  list-style: none;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.roster li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 0;
+  font-weight: 800;
+}
+.roster small,
+.wait-line { color: #8fdfff; font-weight: 800; }
+.wait-line { margin: 0 0 8px; text-align: center; }
+.link-button {
+  border: 0;
+  background: transparent;
+  color: #8fdfff;
+  font-family: Fredoka, sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+}
+.leave-link { display: block; margin: 8px auto 0; }
+.lobby-status {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  font-family: Fredoka, sans-serif;
+  font-size: 28px;
+}
 
 .word-slot {
   position: absolute;
