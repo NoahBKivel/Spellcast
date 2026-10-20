@@ -174,6 +174,7 @@ button:focus-visible, input:focus-visible {
   border-radius: 0;
   padding: 0;
   box-shadow: none;
+  text-align: center;
 }
 .menu-card h1 {
   font-size: 16px;
@@ -187,14 +188,28 @@ button:focus-visible, input:focus-visible {
 }
 .menu-card .field,
 .menu-card .stepper {
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 8px;
   font-size: 13px;
 }
+.menu-card .field {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  margin: 12px 0;
+}
 .menu-card .field input {
-  width: 128px;
+  width: 92px;
   padding: 6px 8px;
   border-radius: 8px;
+  text-align: center;
+}
+.menu-card .name-field input {
+  width: 188px;
+  padding: 8px 10px;
+  font-size: 15px;
 }
 .menu-card .stepper button {
   width: 26px;
@@ -275,7 +290,8 @@ button:focus-visible, input:focus-visible {
   box-shadow: 0 5px 0 #0c6f90;
 }
 .form-error { color: #ffb4c8; margin: 0 0 8px; }
-.join-field { margin-top: 12px; }
+.menu-card .form-error { text-align: center; }
+.menu-card .join-field { margin-top: 16px; }
 .code-row {
   display: flex;
   align-items: center;

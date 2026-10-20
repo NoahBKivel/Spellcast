@@ -68,7 +68,7 @@ export function Menu({ loading = false, error = null, initialCode = "", onCreate
         <section className="menu-card">
           <p className="eyebrow">Five rounds · shared board</p>
           <h1>Find the word. Take the points.</h1>
-          <label className="field">
+          <label className="field name-field">
             Your name
             <input
               value={name}
@@ -102,9 +102,6 @@ export function Menu({ loading = false, error = null, initialCode = "", onCreate
             onClick={() => void joinLobby()}
           >
             {busy === "join" ? "Joining…" : "Join"}
-          </button>
-          <button type="button" className="menu-button" disabled title="The original 50 adventure levels were never published.">
-            Adventure
           </button>
         </section>
       </MenuFrame>
